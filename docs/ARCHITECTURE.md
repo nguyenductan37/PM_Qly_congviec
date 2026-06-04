@@ -27,6 +27,24 @@
 
 ---
 
+## 1.1 API Service Layer
+
+Service pattern trong `apps/api/services/`. Mỗi request dùng Supabase client gắn JWT user (anon key + `Authorization` header) — **không** dùng service role key cho luồng đọc task của user.
+
+### `taskService.getQuickSuggest(userId, minutes)` — PB_4
+
+| Bước | Mô tả |
+|---|---|
+| Lọc | `estimated_min ≤ minutes`, `status IN ('todo','in_progress')`, `deleted_at IS NULL`, `user_id` khớp JWT |
+| Giới hạn | Tối đa **2** task sau khi sắp xếp |
+| Sắp xếp | `eisenhower_q` ASC (1→4); tie-break: `energy_level` high → medium → low |
+
+**Custom sort `energy_level`:** Cột `energy_level` là `TEXT` (`'high' \| 'medium' \| 'low'`). `ORDER BY energy_level DESC` trong PostgreSQL sắp theo alphabet (`'medium'` > `'low'` > `'high'`), không khớp AC4‑4. Service query Supabase rồi sort trong Node bằng map rank (`high`=3, `medium`=2, `low`=1) trước `.slice(0, 2)`.
+
+> Endpoint `GET /api/tasks/quick-suggest` gọi hàm này — chưa implement trong chunk service-only.
+
+---
+
 ## 2. Database Schema
 
 ### Nguyên tắc thiết kế
@@ -200,7 +218,7 @@ sequenceDiagram
     Note over U,DB: Luồng "Quick Suggest"
     U->>APP: Bấm "Tôi có 15 phút"
     APP->>API: GET /api/tasks/quick-suggest?minutes=15
-    API->>DB: SELECT tasks WHERE estimated_min ≤ 15\nAND status IN ('todo','in_progress')\nORDER BY eisenhower_q ASC, energy_level DESC\nLIMIT 2
+    API->>DB: SELECT tasks (filter) → taskService sort eisenhower_q ASC,\nenergy_level high→low → LIMIT 2
     DB-->>API: [task1, task2]
     API-->>APP: { suggestions: [...] }
     APP-->>U: Hiển thị 2 gợi ý

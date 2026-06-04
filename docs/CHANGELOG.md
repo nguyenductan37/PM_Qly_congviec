@@ -9,6 +9,9 @@
 
 > Ghi lại các thay đổi đã được merge vào `develop` nhưng chưa release.
 
+### Added
+- **[PB_4]** Service `getQuickSuggest` trong `taskService.js`: lọc task `estimated_min ≤ N`, status `todo`/`in_progress`, soft-delete loại trừ; tối đa 2 kết quả, sắp xếp Eisenhower Q tăng dần rồi energy_level (high → medium → low)
+
 ---
 
 ## [v0.5.0] — Sprint 5: Energy Intelligence
